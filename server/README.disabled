@@ -1,0 +1,9 @@
+# Server (Disabled)
+
+This `server/` directory has been disabled as part of converting the repository to a client-only React SPA.
+
+If you want to restore or keep the server, you can remove or rename this file. To fully remove the server from the repo, tell me and I will delete the `server/` folder and remove server-related dependencies from `package.json`.
+
+Notes:
+- Dev/start/build scripts now use Vite (see root `package.json`).
+- Server files are kept for reference and can be deleted if you confirm.

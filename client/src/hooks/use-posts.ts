@@ -1,0 +1,133 @@
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { api, buildUrl } from "@shared/routes";
+import { type InsertPost, type Post } from "@shared/types";
+import { useToast } from "@/hooks/use-toast";
+
+export function usePosts() {
+  return useQuery({
+    queryKey: [api.posts.list.path],
+    queryFn: async () => {
+      const res = await fetch(api.posts.list.path, { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch posts");
+      const data = await res.json();
+      return api.posts.list.responses[200].parse(data);
+    },
+  });
+}
+
+export function usePost(id: number) {
+  return useQuery({
+    queryKey: [api.posts.get.path, id],
+    queryFn: async () => {
+      const url = buildUrl(api.posts.get.path, { id });
+      const res = await fetch(url, { credentials: "include" });
+      if (res.status === 404) return null;
+      if (!res.ok) throw new Error("Failed to fetch post");
+      const data = await res.json();
+      return api.posts.get.responses[200].parse(data);
+    },
+    enabled: !!id,
+  });
+}
+
+export function useCreatePost() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async (post: InsertPost) => {
+      const res = await fetch(api.posts.create.path, {
+        method: api.posts.create.method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(post),
+        credentials: "include",
+      });
+      
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || "Failed to create post");
+      }
+      
+      const data = await res.json();
+      return api.posts.create.responses[201].parse(data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [api.posts.list.path] });
+      toast({
+        title: "Success",
+        description: "Post scheduled successfully",
+        variant: "default",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+}
+
+export function useUpdatePost() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async ({ id, ...updates }: { id: number } & Partial<InsertPost>) => {
+      const url = buildUrl(api.posts.update.path, { id });
+      const res = await fetch(url, {
+        method: api.posts.update.method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updates),
+        credentials: "include",
+      });
+
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || "Failed to update post");
+      }
+
+      const data = await res.json();
+      return api.posts.update.responses[200].parse(data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [api.posts.list.path] });
+      toast({
+        title: "Updated",
+        description: "Post updated successfully",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+}
+
+export function useDeletePost() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async (id: number) => {
+      const url = buildUrl(api.posts.delete.path, { id });
+      const res = await fetch(url, {
+        method: api.posts.delete.method,
+        credentials: "include",
+      });
+
+      if (!res.ok) throw new Error("Failed to delete post");
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [api.posts.list.path] });
+      toast({
+        title: "Deleted",
+        description: "Post removed from schedule",
+      });
+    },
+  });
+}
